@@ -1,4 +1,5 @@
 import os
+
 from groq import Groq
 from dotenv import load_dotenv
 
@@ -9,15 +10,16 @@ client = Groq(
 )
 
 SYSTEM_PROMPT = """
-You are a helpful RAG AI assistant.
+You are an intelligent RAG assistant.
 
 Rules:
-1. Answer ONLY from provided context.
-2. If answer is unavailable, say:
-   "The uploaded documents do not contain this information."
-3. Give clear and direct answers.
-4. Use the most relevant retrieved content.
-5. Mention source pages naturally.
+
+1. Answer ONLY from the provided context.
+2. If related information exists, infer carefully.
+3. Do NOT unnecessarily say information is unavailable.
+4. If truly unavailable say:
+   "The uploaded document does not contain this information."
+5. Keep answers short and accurate.
 """
 
 def generate_answer(question, retriever):
@@ -27,41 +29,28 @@ def generate_answer(question, retriever):
         docs = retriever.invoke(question)
 
         if not docs:
+
             return (
-                "The uploaded documents do not contain this information.",
+                "The uploaded document does not contain this information.",
                 []
             )
 
-        seen = set()
-        unique_docs = []
+        context = "\n\n".join([
 
-        for d in docs:
-
-            key = (
-                d.metadata.get("source", "Unknown"),
-                d.metadata.get("page", "?")
-            )
-
-            if key not in seen:
-                seen.add(key)
-                unique_docs.append(d)
-
-        docs = unique_docs
-
-        context = "\n\n".join(
             f"""
-Source: {d.metadata.get('source', 'Unknown')}
 Page: {d.metadata.get('page', '?')}
 
-Content:
 {d.page_content}
 """
+
             for d in docs
-        )
+
+        ])
 
         final_prompt = f"""
-CONTEXT:
+Use the context carefully.
 
+CONTEXT:
 {context}
 
 QUESTION:
@@ -71,18 +60,25 @@ ANSWER:
 """
 
         response = client.chat.completions.create(
+
             model="llama-3.3-70b-versatile",
+
             messages=[
+
                 {
                     "role": "system",
                     "content": SYSTEM_PROMPT
                 },
+
                 {
                     "role": "user",
                     "content": final_prompt
                 }
+
             ],
+
             temperature=0
+
         )
 
         answer = response.choices[0].message.content

@@ -1,13 +1,12 @@
 import streamlit as st
 
-from utils.docling_loader import load_pdf
+from utils.pdf_loader import load_pdf
 from utils.chunking import split_documents
 from utils.embeddings import create_vectorstore
 from utils.retriever import get_retriever
 from utils.generation import generate_answer
 
-
-# ================= PAGE CONFIG =================
+# ================= PAGE =================
 
 st.set_page_config(
     page_title="Multimodal RAG Bot",
@@ -15,96 +14,110 @@ st.set_page_config(
 )
 
 st.title("📚 Multimodal RAG Bot")
-st.write("Upload a PDF and ask questions.")
 
+# ================= SESSION =================
 
-# ================= PDF UPLOAD =================
+if "retriever" not in st.session_state:
+    st.session_state.retriever = None
+
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+
+if "pdf_processed" not in st.session_state:
+    st.session_state.pdf_processed = False
+
+# ================= FILE UPLOAD =================
 
 uploaded_file = st.file_uploader(
     "Upload PDF",
     type=["pdf"]
 )
 
+# ================= PROCESS PDF =================
 
-# ================= MAIN PIPELINE =================
+if uploaded_file and not st.session_state.pdf_processed:
 
-if uploaded_file is not None:
-
-    # SAVE FILE
     with open(uploaded_file.name, "wb") as f:
         f.write(uploaded_file.getbuffer())
 
-    st.success(f"Uploaded: {uploaded_file.name}")
+    st.success("PDF Uploaded ✅")
 
-    # ================= LOAD PDF =================
+    # LOAD PDF
 
     with st.spinner("Loading PDF..."):
 
         documents = load_pdf(uploaded_file.name)
 
-    st.success("PDF Loaded Successfully ✅")
+    st.success("PDF Loaded ✅")
 
-    st.write(f"Loaded {len(documents)} pages")
+    # CHUNKING
 
-    # ================= CHUNKING =================
-
-    with st.spinner("Splitting document..."):
+    with st.spinner("Creating Chunks..."):
 
         chunks = split_documents(documents)
 
-    st.success(f"Created {len(chunks)} chunks ✅")
+    st.success(f"{len(chunks)} chunks created ✅")
 
-    # ================= VECTOR STORE =================
+    # VECTORSTORE
 
-    with st.spinner("Creating FAISS vectorstore..."):
+    with st.spinner("Creating Vectorstore..."):
 
         vectorstore = create_vectorstore(chunks)
 
-    st.success("FAISS Vectorstore Ready ✅")
-
-    # ================= RETRIEVER =================
-
     retriever = get_retriever(vectorstore)
 
-    # ================= QUESTION =================
+    st.session_state.retriever = retriever
+    st.session_state.pdf_processed = True
+
+    st.success("FAISS Vectorstore Ready ✅")
+
+# ================= QUESTIONS =================
+
+if st.session_state.retriever is not None:
 
     question = st.text_input("Ask a question")
 
-    if question:
+    if st.button("Submit Question"):
 
-        with st.spinner("Generating Answer..."):
+        if question.strip():
 
-            answer, docs = generate_answer(
-                question,
-                retriever
-            )
+            with st.spinner("Generating Answer..."):
 
-        # ================= ANSWER =================
-
-        st.subheader("Answer")
-
-        st.write(answer)
-
-        # ================= SOURCES =================
-
-        st.subheader("Sources")
-
-        if docs:
-
-            for d in docs:
-
-                source = d.metadata.get(
-                    "source",
-                    "Unknown"
+                answer, docs = generate_answer(
+                    question,
+                    st.session_state.retriever
                 )
 
-                page = d.metadata.get(
-                    "page",
-                    "?"
-                )
+            st.session_state.chat_history.append({
 
-                st.write(f"📌 {source} - Page {page}")
+                "question": question,
+                "answer": answer,
+                "docs": docs
 
-        else:
+            })
 
-            st.write("No sources found.")
+# ================= CHAT DISPLAY =================
+
+for chat in reversed(st.session_state.chat_history):
+
+    st.subheader("Question")
+    st.write(chat["question"])
+
+    st.subheader("Answer")
+    st.write(chat["answer"])
+
+    st.subheader("Sources")
+
+    shown_pages = set()
+
+    for d in chat["docs"]:
+
+        page = d.metadata.get("page", "?")
+
+        if page not in shown_pages:
+
+            shown_pages.add(page)
+
+            st.write(f"📌 Page {page}")
+
+    st.divider()
