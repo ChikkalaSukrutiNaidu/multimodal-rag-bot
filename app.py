@@ -1,10 +1,10 @@
 import streamlit as st
 
-from utils.pdf_loader import load_pdf
-from utils.chunking import split_documents
-from utils.embeddings import create_vectorstore
-from utils.retriever import get_retriever
-from utils.generation import generate_answer
+from services.pdf_service import process_pdf
+from services.rag_service import (
+    setup_rag,
+    ask_question
+)
 
 # ================= PAGE =================
 
@@ -23,10 +23,7 @@ if "retriever" not in st.session_state:
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-if "pdf_processed" not in st.session_state:
-    st.session_state.pdf_processed = False
-
-# ================= FILE UPLOAD =================
+# ================= PDF =================
 
 uploaded_file = st.file_uploader(
     "Upload PDF",
@@ -35,70 +32,53 @@ uploaded_file = st.file_uploader(
 
 # ================= PROCESS PDF =================
 
-if uploaded_file and not st.session_state.pdf_processed:
+if uploaded_file:
 
-    with open(uploaded_file.name, "wb") as f:
+    pdf_path = f"data/uploaded_pdfs/{uploaded_file.name}"
+
+    with open(pdf_path, "wb") as f:
         f.write(uploaded_file.getbuffer())
 
     st.success("PDF Uploaded ✅")
 
-    # LOAD PDF
+    with st.spinner("Processing PDF..."):
 
-    with st.spinner("Loading PDF..."):
-
-        documents = load_pdf(uploaded_file.name)
-
-    st.success("PDF Loaded ✅")
-
-    # CHUNKING
-
-    with st.spinner("Creating Chunks..."):
-
-        chunks = split_documents(documents)
+        chunks = process_pdf(pdf_path)
 
     st.success(f"{len(chunks)} chunks created ✅")
 
-    # VECTORSTORE
+    with st.spinner("Setting up RAG..."):
 
-    with st.spinner("Creating Vectorstore..."):
-
-        vectorstore = create_vectorstore(chunks)
-
-    retriever = get_retriever(vectorstore)
+        retriever = setup_rag(chunks)
 
     st.session_state.retriever = retriever
-    st.session_state.pdf_processed = True
 
-    st.success("FAISS Vectorstore Ready ✅")
+    st.success("RAG Ready ✅")
 
-# ================= QUESTIONS =================
+# ================= QUESTION =================
 
 if st.session_state.retriever is not None:
 
     question = st.text_input("Ask a question")
 
-    if st.button("Submit Question"):
+    if question:
 
-        if question.strip():
+        answer, docs = ask_question(
+            question,
+            st.session_state.retriever
+        )
 
-            with st.spinner("Generating Answer..."):
+        st.session_state.chat_history.append({
 
-                answer, docs = generate_answer(
-                    question,
-                    st.session_state.retriever
-                )
+            "question": question,
+            "answer": answer,
+            "docs": docs
 
-            st.session_state.chat_history.append({
+        })
 
-                "question": question,
-                "answer": answer,
-                "docs": docs
+# ================= DISPLAY =================
 
-            })
-
-# ================= CHAT DISPLAY =================
-
-for chat in reversed(st.session_state.chat_history):
+for chat in st.session_state.chat_history:
 
     st.subheader("Question")
     st.write(chat["question"])
@@ -108,15 +88,15 @@ for chat in reversed(st.session_state.chat_history):
 
     st.subheader("Sources")
 
-    shown_pages = set()
+    pages = set()
 
     for d in chat["docs"]:
 
         page = d.metadata.get("page", "?")
 
-        if page not in shown_pages:
+        if page not in pages:
 
-            shown_pages.add(page)
+            pages.add(page)
 
             st.write(f"📌 Page {page}")
 
