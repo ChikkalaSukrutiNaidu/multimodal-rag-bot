@@ -1,31 +1,16 @@
 # Multimodal RAG Bot
 
-A modular Multimodal Retrieval-Augmented Generation (RAG) chatbot built using Streamlit, LangChain, FAISS, and Groq LLM.
-
 ## Features
 
 - PDF Question Answering
-- OCR support for scanned PDFs
-- FAISS semantic retrieval
-- Groq LLM integration
-- Modular architecture
-- Multi-question chat support
-- Source-aware answers
+- OCR Support
+- FAISS Retrieval
+- Groq LLM
+- Modular Architecture
 
-## Tech Stack
+---
 
-- Python
-- Streamlit
-- LangChain
-- FAISS
-- Groq API
-- Tesseract OCR
-- Poppler
+## System Design
 
-## Project Structure
+![RAG Architecture](assets/rag-architecture.png)
 
-```text
-core/       -> RAG pipeline logic
-services/   -> orchestration layer
-data/       -> uploaded PDFs
-app.py      -> Streamlit frontend
