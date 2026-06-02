@@ -6,6 +6,8 @@ from services.rag_service import (
     ask_question
 )
 
+from services.company_tool import company_tool
+
 # ================= PAGE =================
 
 st.set_page_config(
@@ -57,24 +59,52 @@ if uploaded_file:
 
 # ================= QUESTION =================
 
-if st.session_state.retriever is not None:
+question = st.text_input("Ask a question")
 
-    question = st.text_input("Ask a question")
+if question:
 
-    if question:
+    # ================= TOOL CHECK =================
 
-        answer, docs = ask_question(
-            question,
-            st.session_state.retriever
-        )
+    tool_answer = company_tool(question)
+
+    if tool_answer:
 
         st.session_state.chat_history.append({
 
             "question": question,
-            "answer": answer,
-            "docs": docs
+            "answer": tool_answer,
+            "docs": []
 
         })
+
+    else:
+
+        # ================= RAG =================
+
+        if st.session_state.retriever is not None:
+
+            answer, docs = ask_question(
+                question,
+                st.session_state.retriever
+            )
+
+            st.session_state.chat_history.append({
+
+                "question": question,
+                "answer": answer,
+                "docs": docs
+
+            })
+
+        else:
+
+            st.session_state.chat_history.append({
+
+                "question": question,
+                "answer": "Please upload a PDF first.",
+                "docs": []
+
+            })
 
 # ================= DISPLAY =================
 
@@ -86,18 +116,20 @@ for chat in st.session_state.chat_history:
     st.subheader("Answer")
     st.write(chat["answer"])
 
-    st.subheader("Sources")
+    if chat["docs"]:
 
-    pages = set()
+        st.subheader("Sources")
 
-    for d in chat["docs"]:
+        pages = set()
 
-        page = d.metadata.get("page", "?")
+        for d in chat["docs"]:
 
-        if page not in pages:
+            page = d.metadata.get("page", "?")
 
-            pages.add(page)
+            if page not in pages:
 
-            st.write(f"📌 Page {page}")
+                pages.add(page)
+
+                st.write(f"📌 Page {page}")
 
     st.divider()

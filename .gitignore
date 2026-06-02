@@ -1,6 +1,14 @@
 venv/
+.env
+
 __pycache__/
 *.pyc
-.env
-data/uploaded_pdfs/
+
 vectorstore/
+
+data/uploaded_pdfs/
+
+.streamlit/
+
+.idea/
+.vscode/
