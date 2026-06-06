@@ -1,13 +1,9 @@
 from tavily import TavilyClient
-from dotenv import load_dotenv
 import os
-
-load_dotenv()
 
 client = TavilyClient(
     api_key=os.getenv("TAVILY_API_KEY")
 )
-
 
 def tavily_search(query):
 
@@ -15,8 +11,7 @@ def tavily_search(query):
 
         response = client.search(
             query=query,
-            search_depth="basic",
-            max_results=3
+            max_results=1
         )
 
         results = response.get("results", [])
@@ -29,17 +24,12 @@ def tavily_search(query):
         title = first.get("title", "")
         content = first.get("content", "")
 
-        answer = f"""
-Title: {title}
+        return f"""
+📌 {title}
 
-Summary:
-{content[:300]}...
+{content[:500]}...
 """
 
-        return answer
-
-    except Exception as e:
-
-        print("Tavily Error:", e)
+    except Exception:
 
         return None

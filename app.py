@@ -10,6 +10,9 @@ from services.web_search_tool import tavily_search
 from services.calculator_tool import calculator_tool
 from services.date_tool import date_tool
 
+from audio_recorder_streamlit import audio_recorder
+from services.voice_tool import speech_to_text
+
 # ================= LOAD ENV =================
 
 load_dotenv()
@@ -21,7 +24,30 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("📚 Multimodal RAG Bot (Multi Tool + RAG)")
+st.title("📚 Multimodal RAG Bot (Voice + Multi Tool + RAG)")
+st.markdown("""
+<style>
+
+.main {
+    background-color: #F8FAFC;
+}
+
+h1 {
+    color: #1E3A8A;
+}
+
+.stButton > button {
+    background-color: #2563EB;
+    color: white;
+    border-radius: 10px;
+}
+
+.stTextInput > div > div > input {
+    border-radius: 10px;
+}
+
+</style>
+""", unsafe_allow_html=True)
 
 # ================= SESSION =================
 
@@ -33,6 +59,12 @@ if "chat_history" not in st.session_state:
 
 if "uploaded_file_name" not in st.session_state:
     st.session_state.uploaded_file_name = None
+
+if "last_question" not in st.session_state:
+    st.session_state.last_question = ""
+
+if "voice_query" not in st.session_state:
+    st.session_state.voice_query = None
 
 # ================= PDF UPLOAD =================
 
@@ -65,9 +97,52 @@ if uploaded_file:
 
         st.success("RAG Ready ✅")
 
-# ================= QUESTION =================
+# ================= TEXT SEARCH =================
 
-question = st.text_input("Ask a question")
+st.subheader("⌨️ Text Search")
+
+text_question = st.text_input("Ask a question")
+
+# ================= VOICE SEARCH =================
+
+st.subheader("🎤 Voice Search")
+
+audio_bytes = audio_recorder()
+
+if audio_bytes:
+
+    with st.spinner("Converting speech to text..."):
+
+        voice_question = speech_to_text(audio_bytes)
+
+    st.success(f"Recognized: {voice_question}")
+
+    if st.button("Use Voice Query"):
+
+        st.session_state.voice_query = voice_question
+
+# ================= FINAL QUESTION =================
+
+question = None
+
+if text_question and text_question.strip():
+
+    question = text_question.strip()
+
+elif st.session_state.voice_query:
+
+    question = st.session_state.voice_query.strip()
+
+# ================= DUPLICATE PREVENTION =================
+
+if question:
+
+    if question == st.session_state.last_question:
+        st.stop()
+
+    st.session_state.last_question = question
+
+# ================= QUESTION PROCESSING =================
 
 if question and len(question.strip()) >= 2:
 
@@ -75,7 +150,7 @@ if question and len(question.strip()) >= 2:
     docs = []
     source = ""
 
-    # ================= 1 DATABASE TOOL =================
+    # ================= DATABASE TOOL =================
 
     db_result = company_tool(question)
 
@@ -86,7 +161,7 @@ if question and len(question.strip()) >= 2:
 
     else:
 
-        # ================= 2 CALCULATOR TOOL =================
+        # ================= CALCULATOR TOOL =================
 
         calc_result = calculator_tool(question)
 
@@ -97,7 +172,7 @@ if question and len(question.strip()) >= 2:
 
         else:
 
-            # ================= 3 DATE TOOL =================
+            # ================= DATE TOOL =================
 
             date_result = date_tool(question)
 
@@ -117,16 +192,16 @@ if question and len(question.strip()) >= 2:
                     "this file",
                     "this document",
                     "this pdf",
-                    "summarize",
-                    "summary"
+                    "summary",
+                    "summarize"
                 ]
 
                 is_pdf_question = any(
-                    word in question.lower()
-                    for word in pdf_keywords
+                    keyword in question.lower()
+                    for keyword in pdf_keywords
                 )
 
-                # ================= 4 PDF RAG =================
+                # ================= PDF RAG =================
 
                 if is_pdf_question:
 
@@ -146,7 +221,7 @@ if question and len(question.strip()) >= 2:
 
                 else:
 
-                    # ================= 5 WEB SEARCH =================
+                    # ================= WEB SEARCH =================
 
                     web_result = tavily_search(question)
 
@@ -184,21 +259,42 @@ if question and len(question.strip()) >= 2:
 
     })
 
+    # Clear voice query after processing
+
+    st.session_state.voice_query = None
+
 # ================= DISPLAY =================
 
-for chat in st.session_state.chat_history:
+for i, chat in enumerate(reversed(st.session_state.chat_history)):
 
-    st.subheader("Question")
+    st.markdown("### ❓ Question")
     st.write(chat["question"])
 
-    st.subheader("Answer")
-    st.write(chat["answer"])
+    st.markdown("### 💡 Answer")
 
-    st.caption(f"Source : {chat['source']}")
+    st.markdown(
+    f"""
+    <div style="
+        background-color:#E8F4FD;
+        padding:20px;
+        border-radius:15px;
+        border-left:6px solid #1E88E5;
+        color:#000000;
+        font-size:17px;
+        line-height:1.6;
+        margin-bottom:10px;
+    ">
+    {str(chat["answer"]).replace(chr(10), "<br>")}
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+    st.caption(f"🔍 Source : {chat['source']}")
 
     if chat["docs"]:
 
-        st.subheader("Sources")
+        st.markdown("### 📄 Sources")
 
         pages = set()
 
