@@ -13,6 +13,26 @@ from services.date_tool import date_tool
 from audio_recorder_streamlit import audio_recorder
 from services.voice_tool import speech_to_text
 
+from services.translation_tool import translate_to_english
+def normalize_query(query):
+
+    query = query.lower()
+
+    mappings = {
+        "టీసీఎస్": "tcs",
+        "టి సి ఎస్": "tcs",
+        "t c s": "tcs",
+        "విప్రో": "wipro",
+        "ఇన్ఫోసిస్": "infosys",
+        "సీఈఓ": "ceo",
+        "సిఈఓ": "ceo"
+    }
+
+    for k, v in mappings.items():
+        query = query.replace(k.lower(), v)
+
+    return query
+
 # ================= LOAD ENV =================
 
 load_dotenv()
@@ -113,13 +133,28 @@ if audio_bytes:
 
     with st.spinner("Converting speech to text..."):
 
-        voice_question = speech_to_text(audio_bytes)
+        voice_result = speech_to_text(audio_bytes)
 
-    st.success(f"Recognized: {voice_question}")
+    voice_question = voice_result["text"]
+    voice_language = voice_result["language"]
+
+    st.success(
+        f"Recognized ({voice_language}) : {voice_question}"
+    )
+
+    translated_text = translate_to_english(
+        voice_question
+    )
+
+    st.info(
+        f"English Translation : {translated_text}"
+    )
+    st.write("DEBUG TRANSCRIPT:", voice_question)
+    st.write("DEBUG TRANSLATION:", translated_text)
 
     if st.button("Use Voice Query"):
 
-        st.session_state.voice_query = voice_question
+        st.session_state.voice_query = translated_text
 
 # ================= FINAL QUESTION =================
 
@@ -146,14 +181,16 @@ if question:
 
 if question and len(question.strip()) >= 2:
 
+    question = normalize_query(question)
+
     answer = None
     docs = []
     source = ""
 
     # ================= DATABASE TOOL =================
-
+    st.write("QUESTION RECEIVED:", question)
     db_result = company_tool(question)
-
+    st.write("DB RESULT:", db_result)
     if db_result:
 
         answer = db_result

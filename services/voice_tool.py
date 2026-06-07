@@ -27,13 +27,20 @@ def speech_to_text(audio_bytes):
 
             transcription = client.audio.transcriptions.create(
                 file=audio_file,
-                model="whisper-large-v3"
+                model="whisper-large-v3",
+                response_format="verbose_json"
             )
 
         os.remove(temp_path)
 
-        return transcription.text
+        return {
+            "text": transcription.text,
+            "language": transcription.language
+        }
 
-    except Exception as e:
+    except Exception:
 
-        return f"Voice Error: {str(e)}"
+        return {
+            "text": "",
+            "language": "unknown"
+        }
