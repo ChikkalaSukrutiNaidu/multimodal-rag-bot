@@ -14,6 +14,7 @@ from audio_recorder_streamlit import audio_recorder
 from services.voice_tool import speech_to_text
 
 from services.translation_tool import translate_to_english
+from services.company_name_corrector import correct_company_names
 def normalize_query(query):
 
     query = query.lower()
@@ -127,6 +128,58 @@ text_question = st.text_input("Ask a question")
 
 st.subheader("🎤 Voice Search")
 
+voice_language = st.selectbox(
+    "Select Voice Language",
+    [
+        "Auto Detect",
+        "English",
+        "Telugu",
+        "Hindi"
+    ]
+)
+
+lang_map = {
+    "Auto Detect": None,
+    "English": "en",
+    "Telugu": "te",
+    "Hindi": "hi"
+}
+
+audio_bytes = audio_recorder(key="voice_recorder_main")
+
+if audio_bytes:
+
+    with st.spinner("Converting speech to text..."):
+
+        voice_result = speech_to_text(
+            audio_bytes,
+            lang_map[voice_language]
+        )
+
+    voice_question = voice_result["text"]
+    detected_language = voice_result["language"]
+
+    st.success(
+        f"Recognized ({detected_language}) : {voice_question}"
+    )
+
+    translated_text = translate_to_english(
+        voice_question
+    )
+
+    translated_text = correct_company_names(
+        translated_text
+    )
+
+    st.info(
+        f"English Translation : {translated_text}"
+    )
+
+    if st.button("Use Voice Query", key="voice_query_btn"):
+        st.session_state["use_voice"] = True
+
+        st.session_state.voice_query = translated_text
+
 audio_bytes = audio_recorder()
 
 if audio_bytes:
@@ -149,9 +202,7 @@ if audio_bytes:
     st.info(
         f"English Translation : {translated_text}"
     )
-    st.write("DEBUG TRANSCRIPT:", voice_question)
-    st.write("DEBUG TRANSLATION:", translated_text)
-
+    
     if st.button("Use Voice Query"):
 
         st.session_state.voice_query = translated_text
@@ -167,6 +218,9 @@ if text_question and text_question.strip():
 elif st.session_state.voice_query:
 
     question = st.session_state.voice_query.strip()
+
+if question:
+    question = correct_company_names(question)
 
 # ================= DUPLICATE PREVENTION =================
 
@@ -188,9 +242,9 @@ if question and len(question.strip()) >= 2:
     source = ""
 
     # ================= DATABASE TOOL =================
-    st.write("QUESTION RECEIVED:", question)
+   
     db_result = company_tool(question)
-    st.write("DB RESULT:", db_result)
+
     if db_result:
 
         answer = db_result
