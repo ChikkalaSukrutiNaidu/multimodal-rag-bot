@@ -20,14 +20,31 @@ def normalize_query(query):
     query = query.lower()
 
     mappings = {
+
+        # PDF related
+        "pidief": "pdf",
+        "p d f": "pdf",
+        "pee dee ef": "pdf",
+        "uploaded pdf": "pdf",
+        "uploaded document": "document",
+
+        # Company names
         "టీసీఎస్": "tcs",
         "టి సి ఎస్": "tcs",
         "t c s": "tcs",
+
         "విప్రో": "wipro",
         "ఇన్ఫోసిస్": "infosys",
+
+        # CEO
         "సీఈఓ": "ceo",
         "సిఈఓ": "ceo"
     }
+
+    for k, v in mappings.items():
+        query = query.replace(k.lower(), v)
+
+    return query
 
     for k, v in mappings.items():
         query = query.replace(k.lower(), v)
@@ -277,15 +294,21 @@ if question and len(question.strip()) >= 2:
                 # ================= PDF RELATED QUESTIONS =================
 
                 pdf_keywords = [
-                    "pdf",
-                    "document",
-                    "uploaded file",
-                    "this file",
-                    "this document",
-                    "this pdf",
-                    "summary",
-                    "summarize"
-                ]
+    "pdf",
+    "document",
+    "uploaded file",
+    "uploaded pdf",
+    "uploaded document",
+    "this file",
+    "this document",
+    "this pdf",
+    "content",
+    "contents",
+    "summary",
+    "summarize",
+    "about this document",
+    "about this pdf"
+]
 
                 is_pdf_question = any(
                     keyword in question.lower()
