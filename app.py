@@ -1,5 +1,6 @@
 import streamlit as st
 from dotenv import load_dotenv
+from graph.workflow import graph
 
 from services.pdf_service import process_pdf
 from services.rag_service import setup_rag, ask_question
@@ -250,132 +251,40 @@ if question:
 
 # ================= QUESTION PROCESSING =================
 
+# if question and len(question.strip()) >= 2:
+
+#     question = normalize_query(question)
+
+#     answer = None
+#     docs = []
+#     source = ""
 if question and len(question.strip()) >= 2:
 
     question = normalize_query(question)
 
-    answer = None
-    docs = []
-    source = ""
+    result = graph.invoke(
+        {
+            "question": question,
+            "retriever": st.session_state.retriever
+        }
+    )
 
-    # ================= DATABASE TOOL =================
-   
-    db_result = company_tool(question)
+    answer = result.get("answer")
+    source = result.get("source", "unknown")
+    docs = result.get("docs", [])
 
-    if db_result:
-
-        answer = db_result
-        source = "database"
-
-    else:
-
-        # ================= CALCULATOR TOOL =================
-
-        calc_result = calculator_tool(question)
-
-        if calc_result:
-
-            answer = calc_result
-            source = "calculator"
-
-        else:
-
-            # ================= DATE TOOL =================
-
-            date_result = date_tool(question)
-
-            if date_result:
-
-                answer = date_result
-                source = "date"
-
-            else:
-
-                # ================= PDF RELATED QUESTIONS =================
-
-                pdf_keywords = [
-    "pdf",
-    "document",
-    "uploaded file",
-    "uploaded pdf",
-    "uploaded document",
-    "this file",
-    "this document",
-    "this pdf",
-    "content",
-    "contents",
-    "summary",
-    "summarize",
-    "about this document",
-    "about this pdf"
-]
-
-                is_pdf_question = any(
-                    keyword in question.lower()
-                    for keyword in pdf_keywords
-                )
-
-                # ================= PDF RAG =================
-
-                if is_pdf_question:
-
-                    if st.session_state.retriever is not None:
-
-                        answer, docs = ask_question(
-                            question,
-                            st.session_state.retriever
-                        )
-
-                        source = "pdf_rag"
-
-                    else:
-
-                        answer = "Please upload a PDF first."
-                        source = "none"
-
-                else:
-
-                    # ================= WEB SEARCH =================
-
-                    web_result = tavily_search(question)
-
-                    if web_result:
-
-                        answer = web_result
-                        source = "web"
-
-                    else:
-
-                        # ================= FALLBACK TO RAG =================
-
-                        if st.session_state.retriever is not None:
-
-                            answer, docs = ask_question(
-                                question,
-                                st.session_state.retriever
-                            )
-
-                            source = "pdf_rag"
-
-                        else:
-
-                            answer = "No information found."
-                            source = "none"
-
-    # ================= SAVE CHAT =================
-
-    st.session_state.chat_history.append({
-
-        "question": question,
-        "answer": answer,
-        "docs": docs,
-        "source": source
-
-    })
-
-    # Clear voice query after processing
+    st.session_state.chat_history.append(
+        {
+            "question": question,
+            "answer": answer,
+            "docs": docs,
+            "source": source
+        }
+    )
 
     st.session_state.voice_query = None
+
+    # ================= DATABASE TOOL =================
 
 # ================= DISPLAY =================
 

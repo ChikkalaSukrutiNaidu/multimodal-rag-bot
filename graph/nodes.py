@@ -1,3 +1,4 @@
+
 from services.company_tool import company_tool
 from services.rag_service import ask_question
 from services.web_search_tool import tavily_search
@@ -58,7 +59,10 @@ def router_node(state):
     ):
         return {"route": "web"}
 
-    return {"route": "rag"}
+    if state["retriever"] is not None:
+        return {"route": "rag"}
+
+    return {"route": "web"}
 
 
 def company_node(state):
@@ -102,9 +106,19 @@ def date_node(state):
 
 def rag_node(state):
 
+    retriever = state["retriever"]
+
+    if retriever is None:
+
+        return {
+            "answer": "Please upload a PDF first.",
+            "source": "pdf_rag",
+            "docs": []
+        }
+
     answer, docs = ask_question(
         state["question"],
-        state["retriever"]
+        retriever
     )
 
     return {
