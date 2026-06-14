@@ -1,6 +1,9 @@
 from services.company_tool import company_tool
 from services.rag_service import ask_question
 from services.web_search_tool import tavily_search
+from services.calculator_tool import calculator_tool
+from services.date_tool import date_tool
+
 
 def router_node(state):
 
@@ -15,65 +18,110 @@ def router_node(state):
             "company"
         ]
     ):
-        return {
-            "route": "company"
-        }
+        return {"route": "company"}
+
+    if any(
+        word in question
+        for word in [
+            "calculate",
+            "plus",
+            "minus",
+            "times",
+            "divided",
+            "+",
+            "-",
+            "*",
+            "/"
+        ]
+    ):
+        return {"route": "calculator"}
+
+    if any(
+        word in question
+        for word in [
+            "today",
+            "date",
+            "day",
+            "month",
+            "year"
+        ]
+    ):
+        return {"route": "date"}
 
     if any(
         word in question
         for word in [
             "latest",
-            "today",
             "news",
             "current"
         ]
     ):
-        return {
-            "route": "web"
-        }
+        return {"route": "web"}
 
-    return {
-        "route": "rag"
-    }
+    return {"route": "rag"}
 
 
 def company_node(state):
-
-    print("Company Node Started")
 
     answer = company_tool(
         state["question"]
     )
 
-    print("Company Node Finished")
+    return {
+        "answer": answer,
+        "source": "database",
+        "docs": []
+    }
+
+
+def calculator_node(state):
+
+    answer = calculator_tool(
+        state["question"]
+    )
 
     return {
-        "answer": answer
+        "answer": answer,
+        "source": "calculator",
+        "docs": []
+    }
+
+
+def date_node(state):
+
+    answer = date_tool(
+        state["question"]
+    )
+
+    return {
+        "answer": answer,
+        "source": "date",
+        "docs": []
     }
 
 
 def rag_node(state):
 
-    question = state["question"]
-
-    retriever = state["retriever"]
-
     answer, docs = ask_question(
-        question,
-        retriever
+        state["question"],
+        state["retriever"]
     )
 
     return {
-        "answer": answer
+        "answer": answer,
+        "source": "pdf_rag",
+        "docs": docs
     }
 
 
 def web_node(state):
 
-    question = state["question"]
-
-    answer = tavily_search(question)
+    answer = tavily_search(
+        state["question"]
+    )
 
     return {
-        "answer": answer
+        "answer": answer,
+        "source": "web",
+        "docs": []
     }
