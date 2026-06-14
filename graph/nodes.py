@@ -1,9 +1,13 @@
+from services.company_tool import company_tool
+from services.rag_service import ask_question
+
+
 def router_node(state):
 
-    question = state["question"]
+    question = state["question"].lower()
 
     if any(
-        word in question.lower()
+        word in question
         for word in [
             "ceo",
             "package",
@@ -15,17 +19,31 @@ def router_node(state):
             "route": "company"
         }
 
+    if any(
+        word in question
+        for word in [
+            "latest",
+            "today",
+            "news",
+            "current"
+        ]
+    ):
+        return {
+            "route": "web"
+        }
+
     return {
         "route": "rag"
     }
 
-from services.company_tool import company_tool
 
 def company_node(state):
 
     print("Company Node Started")
 
-    answer = company_tool(state["question"])
+    answer = company_tool(
+        state["question"]
+    )
 
     print("Company Node Finished")
 
@@ -33,7 +51,6 @@ def company_node(state):
         "answer": answer
     }
 
-from services.rag_service import ask_question
 
 def rag_node(state):
 
@@ -48,4 +65,11 @@ def rag_node(state):
 
     return {
         "answer": answer
+    }
+
+
+def web_node(state):
+
+    return {
+        "answer": "WEB Node Working"
     }

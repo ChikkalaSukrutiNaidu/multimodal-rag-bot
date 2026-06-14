@@ -2,37 +2,22 @@ from services.database_service import get_company_info
 
 def company_tool(query):
 
+    print("Inside company_tool")
+
     query = query.lower()
 
     company = None
 
-    if (
-        "tcs" in query or
-        "tata consultancy services" in query
-    ):
+    if "tcs" in query:
         company = "TCS"
 
-    elif (
-        "infosys" in query
-    ):
-        company = "Infosys"
-
-    elif (
-        "wipro" in query
-    ):
-        company = "Wipro"
-
     if company:
+        print("Before DB Call")
 
         data = get_company_info(company)
 
-        if data:
+        print("After DB Call")
 
-            return f"""
-Company: {data['company_name']}
-CEO: {data['ceo']}
-Eligibility: {data['eligibility']}
-Package: {data['package']}
-"""
+        return str(data)
 
     return None

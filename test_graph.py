@@ -2,7 +2,7 @@ from graph.workflow import graph
 
 result = graph.invoke(
     {
-        "question": "Explain DBMS normalization",
+        "question": "latest AI news",
         "retriever": None
     }
 )
