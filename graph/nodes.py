@@ -33,8 +33,19 @@ def company_node(state):
         "answer": answer
     }
 
+from services.rag_service import ask_question
+
 def rag_node(state):
 
+    question = state["question"]
+
+    retriever = state["retriever"]
+
+    answer, docs = ask_question(
+        question,
+        retriever
+    )
+
     return {
-        "answer": "RAG Node Working"
+        "answer": answer
     }
