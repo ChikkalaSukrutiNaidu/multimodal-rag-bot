@@ -19,19 +19,19 @@ def router_node(state):
         "route": "rag"
     }
 
-
-from services.company_tool import company_tool
-
 from services.company_tool import company_tool
 
 def company_node(state):
 
-    print("Company Node Called")
+    print("Company Node Started")
+
+    answer = company_tool(state["question"])
+
+    print("Company Node Finished")
 
     return {
-        "answer": "Company Tool Reached"
+        "answer": answer
     }
-
 
 def rag_node(state):
 

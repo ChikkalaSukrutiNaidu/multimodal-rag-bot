@@ -1,9 +1,8 @@
 from graph.workflow import graph
 
-
 result = graph.invoke(
     {
-        "question": "Who is CEO of TCS?",
+        "question": "Explain DBMS normalization",
         "retriever": None
     }
 )
