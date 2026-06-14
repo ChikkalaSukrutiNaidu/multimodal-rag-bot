@@ -1,6 +1,6 @@
 from services.company_tool import company_tool
 from services.rag_service import ask_question
-
+from services.web_search_tool import tavily_search
 
 def router_node(state):
 
@@ -70,6 +70,10 @@ def rag_node(state):
 
 def web_node(state):
 
+    question = state["question"]
+
+    answer = tavily_search(question)
+
     return {
-        "answer": "WEB Node Working"
+        "answer": answer
     }
