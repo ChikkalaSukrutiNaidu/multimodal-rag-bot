@@ -12,3 +12,9 @@ data/uploaded_pdfs/
 
 .idea/
 .vscode/
+venv/
+langgraph_env/
+
+__pycache__/
+*.pyc
+.env
