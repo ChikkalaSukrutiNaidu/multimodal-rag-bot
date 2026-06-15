@@ -1,4 +1,3 @@
-
 from services.company_tool import company_tool
 from services.rag_service import ask_question
 from services.web_search_tool import tavily_search
@@ -10,6 +9,7 @@ def router_node(state):
 
     question = state["question"].lower()
 
+    # Company Queries
     if any(
         word in question
         for word in [
@@ -21,6 +21,7 @@ def router_node(state):
     ):
         return {"route": "company"}
 
+    # Calculator Queries
     if any(
         word in question
         for word in [
@@ -37,6 +38,7 @@ def router_node(state):
     ):
         return {"route": "calculator"}
 
+    # Date Queries
     if any(
         word in question
         for word in [
@@ -49,19 +51,27 @@ def router_node(state):
     ):
         return {"route": "date"}
 
+    # Latest / Dynamic IPL Queries
     if any(
         word in question
         for word in [
             "latest",
             "news",
-            "current"
+            "current",
+            "2025",
+            "2026",
+            "winner",
+            "won",
+            "recent"
         ]
     ):
         return {"route": "web"}
 
+    # Dataset Questions
     if state["retriever"] is not None:
         return {"route": "rag"}
 
+    # Fallback
     return {"route": "web"}
 
 
@@ -111,7 +121,7 @@ def rag_node(state):
     if retriever is None:
 
         return {
-            "answer": "Please upload a PDF first.",
+            "answer": "IPL dataset not loaded.",
             "source": "pdf_rag",
             "docs": []
         }
