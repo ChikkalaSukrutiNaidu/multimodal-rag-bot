@@ -161,18 +161,17 @@ def web_node(state):
     User Question:
     {question}
 
-    Web Search Result:
+    Web Search Results:
     {web_content}
 
     Rules:
-    - Answer in maximum 5 lines.
-    - Do not copy article text.
     - Give only the final answer.
-    - If points table, show top teams only.
-    - If orange cap or purple cap, show player name and stats.
-    - If winner question, give only winner name.
-
-    Answer:
+    - Maximum 5 lines.
+    - Do not copy website content.
+    - Summarize important facts only.
+    - For points tables show top teams.
+    - For rankings show top entries.
+    - For winner questions give winner name directly.
     """
 )
 
