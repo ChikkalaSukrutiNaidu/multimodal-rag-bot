@@ -1,3 +1,4 @@
+from services.llm_service import llm
 from services.company_tool import company_tool
 from services.rag_service import ask_question
 from services.web_search_tool import tavily_search
@@ -143,12 +144,38 @@ def rag_node(state):
 
 def web_node(state):
 
-    answer = tavily_search(
-        state["question"]
+    question = state["question"]
+
+    web_content = tavily_search(question)
+
+    if not web_content:
+
+        return {
+            "answer": "No web results found.",
+            "source": "web",
+            "docs": []
+        }
+
+    summary = llm.invoke(
+        f"""
+        User Question:
+        {question}
+
+        Web Search Result:
+        {web_content}
+
+        Give a short direct answer.
+
+        If the content contains rankings,
+        points tables or statistics,
+        summarize only the important information.
+
+        Do not copy the entire webpage.
+        """
     )
 
     return {
-        "answer": answer,
+        "answer": summary.content,
         "source": "web",
         "docs": []
     }
