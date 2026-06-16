@@ -51,23 +51,26 @@ def router_node(state):
     ):
         return {"route": "date"}
 
-    # Latest / Dynamic IPL Queries
+    # Live / Recent IPL Questions
     if any(
         word in question
         for word in [
             "latest",
             "news",
             "current",
+            "recent",
             "2025",
             "2026",
             "winner",
             "won",
-            "recent"
+            "points table",
+            "orange cap",
+            "purple cap"
         ]
     ):
         return {"route": "web"}
 
-    # Dataset Questions
+    # IPL Dataset Questions
     if state["retriever"] is not None:
         return {"route": "rag"}
 
