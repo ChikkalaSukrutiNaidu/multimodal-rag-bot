@@ -5,11 +5,11 @@ from graph.workflow import graph
 from services.pdf_service import process_pdf
 from services.rag_service import setup_rag, ask_question
 
-from services.company_tool import company_tool
-from services.web_search_tool import tavily_search
+# from services.company_tool import company_tool
+# from services.web_search_tool import tavily_search
 
-from services.calculator_tool import calculator_tool
-from services.date_tool import date_tool
+# from services.calculator_tool import calculator_tool
+# from services.date_tool import date_tool
 
 from audio_recorder_streamlit import audio_recorder
 from services.voice_tool import speech_to_text
@@ -63,7 +63,8 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("📚 Multimodal RAG Bot (Voice + Multi Tool + RAG)")
+st.title("🏏 IPL AI Assistant")
+st.caption("Ask anything about IPL dataset")
 st.markdown("""
 <style>
 
@@ -105,36 +106,52 @@ if "last_question" not in st.session_state:
 if "voice_query" not in st.session_state:
     st.session_state.voice_query = None
 
-# ================= PDF UPLOAD =================
+# ================= LOAD IPL DATASET =================
 
-uploaded_file = st.file_uploader(
-    "Upload PDF",
-    type=["pdf"]
-)
+if st.session_state.retriever is None:
 
-if uploaded_file:
+    with st.spinner("Loading IPL Dataset..."):
 
-    if st.session_state.uploaded_file_name != uploaded_file.name:
+        pdf_path = "data/uploaded_pdfs/IPL_Dataset.pdf"
 
-        pdf_path = f"data/uploaded_pdfs/{uploaded_file.name}"
+        chunks = process_pdf(pdf_path)
 
-        with open(pdf_path, "wb") as f:
-            f.write(uploaded_file.getbuffer())
-
-        st.success("PDF Uploaded ✅")
-
-        with st.spinner("Processing PDF..."):
-            chunks = process_pdf(pdf_path)
-
-        st.success(f"{len(chunks)} chunks created ✅")
-
-        with st.spinner("Setting up RAG..."):
-            retriever = setup_rag(chunks)
+        retriever = setup_rag(chunks)
 
         st.session_state.retriever = retriever
-        st.session_state.uploaded_file_name = uploaded_file.name
 
-        st.success("RAG Ready ✅")
+    st.success("IPL Dataset Loaded ✅")
+
+# ================= PDF UPLOAD =================
+
+# uploaded_file = st.file_uploader(
+#     "Upload PDF",
+#     type=["pdf"]
+# )
+
+# if uploaded_file:
+
+#     if st.session_state.uploaded_file_name != uploaded_file.name:
+
+#         pdf_path = f"data/uploaded_pdfs/{uploaded_file.name}"
+
+#         with open(pdf_path, "wb") as f:
+#             f.write(uploaded_file.getbuffer())
+
+#         st.success("PDF Uploaded ✅")
+
+#         with st.spinner("Processing PDF..."):
+#             chunks = process_pdf(pdf_path)
+
+#         st.success(f"{len(chunks)} chunks created ✅")
+
+#         with st.spinner("Setting up RAG..."):
+#             retriever = setup_rag(chunks)
+
+#         st.session_state.retriever = retriever
+#         st.session_state.uploaded_file_name = uploaded_file.name
+
+#         st.success("RAG Ready ✅")
 
 # ================= TEXT SEARCH =================
 
@@ -198,32 +215,32 @@ if audio_bytes:
 
         st.session_state.voice_query = translated_text
 
-audio_bytes = audio_recorder()
+# audio_bytes = audio_recorder()
 
-if audio_bytes:
+# if audio_bytes:
 
-    with st.spinner("Converting speech to text..."):
+#     with st.spinner("Converting speech to text..."):
 
-        voice_result = speech_to_text(audio_bytes)
+#         voice_result = speech_to_text(audio_bytes)
 
-    voice_question = voice_result["text"]
-    voice_language = voice_result["language"]
+#     voice_question = voice_result["text"]
+#     voice_language = voice_result["language"]
 
-    st.success(
-        f"Recognized ({voice_language}) : {voice_question}"
-    )
+#     st.success(
+#         f"Recognized ({voice_language}) : {voice_question}"
+#     )
 
-    translated_text = translate_to_english(
-        voice_question
-    )
+#     translated_text = translate_to_english(
+#         voice_question
+#     )
 
-    st.info(
-        f"English Translation : {translated_text}"
-    )
+#     st.info(
+#         f"English Translation : {translated_text}"
+#     )
     
-    if st.button("Use Voice Query"):
+#     if st.button("Use Voice Query"):
 
-        st.session_state.voice_query = translated_text
+#         st.session_state.voice_query = translated_text
 
 # ================= FINAL QUESTION =================
 
