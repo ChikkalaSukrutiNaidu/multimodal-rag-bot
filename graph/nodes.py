@@ -157,22 +157,24 @@ def web_node(state):
         }
 
     summary = llm.invoke(
-        f"""
-        User Question:
-        {question}
+    f"""
+    User Question:
+    {question}
 
-        Web Search Result:
-        {web_content}
+    Web Search Result:
+    {web_content}
 
-        Give a short direct answer.
+    Rules:
+    - Answer in maximum 5 lines.
+    - Do not copy article text.
+    - Give only the final answer.
+    - If points table, show top teams only.
+    - If orange cap or purple cap, show player name and stats.
+    - If winner question, give only winner name.
 
-        If the content contains rankings,
-        points tables or statistics,
-        summarize only the important information.
-
-        Do not copy the entire webpage.
-        """
-    )
+    Answer:
+    """
+)
 
     return {
         "answer": summary.content,
