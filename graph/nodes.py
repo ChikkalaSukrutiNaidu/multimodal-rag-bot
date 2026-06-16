@@ -1,4 +1,5 @@
 from services.llm_service import llm
+from services.ipl_stats_tool import is_ipl_stats_query
 from services.company_tool import company_tool
 from services.rag_service import ask_question
 from services.web_search_tool import tavily_search
@@ -52,7 +53,7 @@ def router_node(state):
     ):
         return {"route": "date"}
 
-    # Live / Recent IPL Questions
+    # Latest IPL / Dynamic Questions
     if any(
         word in question
         for word in [
@@ -71,19 +72,20 @@ def router_node(state):
     ):
         return {"route": "web"}
 
-    # IPL Dataset Questions
+    # IPL Stats Queries
+    if is_ipl_stats_query(question):
+        return {"route": "ipl_stats"}
+
+    # Dataset Queries
     if state["retriever"] is not None:
         return {"route": "rag"}
 
-    # Fallback
     return {"route": "web"}
 
 
 def company_node(state):
 
-    answer = company_tool(
-        state["question"]
-    )
+    answer = company_tool(state["question"])
 
     return {
         "answer": answer,
@@ -94,9 +96,7 @@ def company_node(state):
 
 def calculator_node(state):
 
-    answer = calculator_tool(
-        state["question"]
-    )
+    answer = calculator_tool(state["question"])
 
     return {
         "answer": answer,
@@ -107,9 +107,7 @@ def calculator_node(state):
 
 def date_node(state):
 
-    answer = date_tool(
-        state["question"]
-    )
+    answer = date_tool(state["question"])
 
     return {
         "answer": answer,
@@ -123,7 +121,6 @@ def rag_node(state):
     retriever = state["retriever"]
 
     if retriever is None:
-
         return {
             "answer": "IPL dataset not loaded.",
             "source": "pdf_rag",
@@ -140,6 +137,27 @@ def rag_node(state):
         "source": "pdf_rag",
         "docs": docs
     }
+def ipl_stats_node(state):
+
+    retriever = state["retriever"]
+
+    if retriever is None:
+        return {
+            "answer": "IPL dataset not loaded.",
+            "source": "ipl_stats",
+            "docs": []
+        }
+
+    answer, docs = ask_question(
+        state["question"],
+        retriever
+    )
+
+    return {
+        "answer": answer,
+        "source": "ipl_stats",
+        "docs": docs
+    }
 
 
 def web_node(state):
@@ -149,7 +167,6 @@ def web_node(state):
     web_content = tavily_search(question)
 
     if not web_content:
-
         return {
             "answer": "No web results found.",
             "source": "web",
@@ -157,23 +174,23 @@ def web_node(state):
         }
 
     summary = llm.invoke(
-    f"""
-    User Question:
-    {question}
+        f"""
+        User Question:
+        {question}
 
-    Web Search Results:
-    {web_content}
+        Web Search Results:
+        {web_content}
 
-    Rules:
-    - Give only the final answer.
-    - Maximum 5 lines.
-    - Do not copy website content.
-    - Summarize important facts only.
-    - For points tables show top teams.
-    - For rankings show top entries.
-    - For winner questions give winner name directly.
-    """
-)
+        Rules:
+        - Give only the final answer.
+        - Maximum 5 lines.
+        - Do not copy website content.
+        - Summarize important facts only.
+        - For points tables show top teams.
+        - For rankings show top entries.
+        - For winner questions give winner name directly.
+        """
+    )
 
     return {
         "answer": summary.content,

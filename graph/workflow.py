@@ -9,6 +9,7 @@ from graph.nodes import (
     calculator_node,
     date_node,
     rag_node,
+    ipl_stats_node,
     web_node
 )
 
@@ -19,6 +20,7 @@ builder.add_node("company", company_node)
 builder.add_node("calculator", calculator_node)
 builder.add_node("date", date_node)
 builder.add_node("rag", rag_node)
+builder.add_node("ipl_stats", ipl_stats_node)
 builder.add_node("web", web_node)
 
 builder.set_entry_point("router")
@@ -36,6 +38,7 @@ builder.add_conditional_edges(
         "calculator": "calculator",
         "date": "date",
         "rag": "rag",
+        "ipl_stats": "ipl_stats",
         "web": "web"
     }
 )
@@ -44,6 +47,7 @@ builder.add_edge("company", END)
 builder.add_edge("calculator", END)
 builder.add_edge("date", END)
 builder.add_edge("rag", END)
+builder.add_edge("ipl_stats", END)
 builder.add_edge("web", END)
 
 graph = builder.compile()
