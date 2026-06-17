@@ -180,13 +180,30 @@ def reasoning_node(state):
             "docs": []
         }
 
-    answer, docs = ask_question(
-        state["question"],
-        retriever
+    docs = retriever.invoke(
+        state["question"]
+    )
+
+    context = "\n\n".join(
+        [doc.page_content for doc in docs]
+    )
+
+    response = llm.invoke(
+        f"""
+        Answer using only the context below.
+
+        Context:
+        {context}
+
+        Question:
+        {state["question"]}
+
+        Give a concise reasoning answer.
+        """
     )
 
     return {
-        "answer": answer,
+        "answer": response.content,
         "source": "reasoning",
         "docs": docs
     }
