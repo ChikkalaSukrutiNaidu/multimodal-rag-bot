@@ -268,21 +268,26 @@ if question:
 
 # ================= QUESTION PROCESSING =================
 
-# if question and len(question.strip()) >= 2:
+# ================= QUESTION PROCESSING =================
 
-#     question = normalize_query(question)
-
-#     answer = None
-#     docs = []
-#     source = ""
 if question and len(question.strip()) >= 2:
 
     question = normalize_query(question)
 
+    history_text = ""
+
+    for chat in st.session_state.chat_history[-5:]:
+
+        history_text += (
+            f"User: {chat['question']}\n"
+            f"Assistant: {chat['answer']}\n\n"
+        )
+
     result = graph.invoke(
         {
             "question": question,
-            "retriever": st.session_state.retriever
+            "retriever": st.session_state.retriever,
+            "history": history_text
         }
     )
 

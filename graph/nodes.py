@@ -5,7 +5,7 @@ from services.rag_service import ask_question
 from services.web_search_tool import tavily_search
 from services.calculator_tool import calculator_tool
 from services.date_tool import date_tool
-
+from services.memory import get_history
 
 def router_node(state):
 
@@ -188,17 +188,29 @@ def reasoning_node(state):
         [doc.page_content for doc in docs]
     )
 
+    history = state.get(
+        "history",
+        ""
+    )
+
     response = llm.invoke(
         f"""
-        Answer using only the context below.
+        Previous Conversation:
+
+        {history}
 
         Context:
+
         {context}
 
-        Question:
-        {state["question"]}
+        Current Question:
 
-        Give a concise reasoning answer.
+        {state['question']}
+
+        Answer using both conversation history
+        and context.
+
+        Give a concise answer.
         """
     )
 
@@ -207,7 +219,6 @@ def reasoning_node(state):
         "source": "reasoning",
         "docs": docs
     }
-
 
 def web_node(state):
 
