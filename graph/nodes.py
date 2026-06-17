@@ -1,15 +1,38 @@
+from services.llm_service import llm
+from services.ipl_stats_tool import is_ipl_stats_query
 from services.company_tool import company_tool
 from services.rag_service import ask_question
 from services.web_search_tool import tavily_search
 from services.calculator_tool import calculator_tool
 from services.date_tool import date_tool
-
+from services.memory import get_history
 
 def router_node(state):
 
     question = state["question"].lower()
 
-    # Company Queries
+    reasoning_keywords = [
+    "compare",
+    "difference",
+    "both",
+    "highest and",
+    "most runs and",
+    "most wickets and",
+    "top batsman and top bowler",
+    "better",
+    "average",
+    "he",
+    "him",
+    "his",
+    "they",
+    "them",
+    "that player",
+    "that team"
+]
+
+    if any(keyword in question for keyword in reasoning_keywords):
+        return {"route": "reasoning"}
+
     if any(
         word in question
         for word in [
@@ -21,7 +44,6 @@ def router_node(state):
     ):
         return {"route": "company"}
 
-    # Calculator Queries
     if any(
         word in question
         for word in [
@@ -38,7 +60,6 @@ def router_node(state):
     ):
         return {"route": "calculator"}
 
-    # Date Queries
     if any(
         word in question
         for word in [
@@ -51,7 +72,6 @@ def router_node(state):
     ):
         return {"route": "date"}
 
-    # Live / Recent IPL Questions
     if any(
         word in question
         for word in [
@@ -70,19 +90,18 @@ def router_node(state):
     ):
         return {"route": "web"}
 
-    # IPL Dataset Questions
+    if is_ipl_stats_query(question):
+        return {"route": "ipl_stats"}
+
     if state["retriever"] is not None:
         return {"route": "rag"}
 
-    # Fallback
     return {"route": "web"}
 
 
 def company_node(state):
 
-    answer = company_tool(
-        state["question"]
-    )
+    answer = company_tool(state["question"])
 
     return {
         "answer": answer,
@@ -93,9 +112,7 @@ def company_node(state):
 
 def calculator_node(state):
 
-    answer = calculator_tool(
-        state["question"]
-    )
+    answer = calculator_tool(state["question"])
 
     return {
         "answer": answer,
@@ -106,9 +123,7 @@ def calculator_node(state):
 
 def date_node(state):
 
-    answer = date_tool(
-        state["question"]
-    )
+    answer = date_tool(state["question"])
 
     return {
         "answer": answer,
@@ -122,7 +137,6 @@ def rag_node(state):
     retriever = state["retriever"]
 
     if retriever is None:
-
         return {
             "answer": "IPL dataset not loaded.",
             "source": "pdf_rag",
@@ -141,14 +155,140 @@ def rag_node(state):
     }
 
 
-def web_node(state):
+def ipl_stats_node(state):
 
-    answer = tavily_search(
-        state["question"]
+    retriever = state["retriever"]
+
+    if retriever is None:
+        return {
+            "answer": "IPL dataset not loaded.",
+            "source": "ipl_stats",
+            "docs": []
+        }
+
+    answer, docs = ask_question(
+        state["question"],
+        retriever
     )
 
     return {
         "answer": answer,
+        "source": "ipl_stats",
+        "docs": docs
+    }
+
+
+def reasoning_node(state):
+
+    retriever = state["retriever"]
+
+    if retriever is None:
+        return {
+            "answer": "IPL dataset not loaded.",
+            "source": "reasoning",
+            "docs": []
+        }
+
+    docs = retriever.invoke(
+        state["question"]
+    )
+
+    context = "\n\n".join(
+        [doc.page_content for doc in docs]
+    )
+
+    history = state.get(
+        "history",
+        ""
+    )
+
+    response = llm.invoke(
+        f"""
+You are an IPL analytics assistant.
+
+Previous Conversation:
+{history}
+
+IPL Context:
+{context}
+
+Current Question:
+{state['question']}
+
+Rules:
+
+1. Always use previous conversation to resolve references.
+
+2. If the user says:
+   - he
+   - him
+   - his
+   - they
+   - them
+   - that player
+   - that team
+
+   identify the entity from previous conversation.
+
+3. Do NOT introduce new players unless user explicitly asks.
+
+4. If previous question compared two players,
+   follow-up questions must refer only to those players.
+
+Example:
+
+User: Compare Virat Kohli and Rohit Sharma
+
+User: Who has better average?
+
+Answer:
+Virat Kohli has better average.
+
+5. Answer only from provided IPL context.
+
+6. Keep answer under 5 lines.
+
+Final Answer:
+"""
+    )
+
+    return {
+        "answer": response.content,
+        "source": "reasoning",
+        "docs": docs
+    }
+
+def web_node(state):
+
+    question = state["question"]
+
+    web_content = tavily_search(question)
+
+    if not web_content:
+        return {
+            "answer": "No web results found.",
+            "source": "web",
+            "docs": []
+        }
+
+    summary = llm.invoke(
+        f"""
+        User Question:
+        {question}
+
+        Web Search Results:
+        {web_content}
+
+        Rules:
+        - Give only the final answer.
+        - Maximum 5 lines.
+        - Do not copy website content.
+        - Summarize important facts only.
+        """
+    )
+
+    return {
+        "answer": summary.content,
         "source": "web",
         "docs": []
     }

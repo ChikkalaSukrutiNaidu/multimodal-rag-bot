@@ -11,7 +11,8 @@ def tavily_search(query):
 
         response = client.search(
             query=query,
-            max_results=1
+            search_depth="advanced",
+            max_results=5
         )
 
         results = response.get("results", [])
@@ -19,17 +20,24 @@ def tavily_search(query):
         if not results:
             return None
 
-        first = results[0]
+        content = ""
 
-        title = first.get("title", "")
-        content = first.get("content", "")
+        for result in results:
 
-        return f"""
-📌 {title}
+            title = result.get("title", "")
+            text = result.get("content", "")
 
-{content[:500]}...
+            content += f"""
+Title: {title}
+
+{text}
+
+-------------------
 """
 
-    except Exception:
+        return content
 
+    except Exception as e:
+
+        print(e)
         return None

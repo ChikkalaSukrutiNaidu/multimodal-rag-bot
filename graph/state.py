@@ -7,6 +7,8 @@ class GraphState(TypedDict):
 
     retriever: object
 
+    history: str
+
     route: str
 
     answer: str
