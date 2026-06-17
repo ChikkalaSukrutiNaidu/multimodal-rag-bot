@@ -12,14 +12,23 @@ def router_node(state):
     question = state["question"].lower()
 
     reasoning_keywords = [
-        "compare",
-        "difference",
-        "both",
-        "highest and",
-        "most runs and",
-        "most wickets and",
-        "top batsman and top bowler"
-    ]
+    "compare",
+    "difference",
+    "both",
+    "highest and",
+    "most runs and",
+    "most wickets and",
+    "top batsman and top bowler",
+    "better",
+    "average",
+    "he",
+    "him",
+    "his",
+    "they",
+    "them",
+    "that player",
+    "that team"
+]
 
     if any(keyword in question for keyword in reasoning_keywords):
         return {"route": "reasoning"}
@@ -195,23 +204,52 @@ def reasoning_node(state):
 
     response = llm.invoke(
         f"""
-        Previous Conversation:
+You are an IPL analytics assistant.
 
-        {history}
+Previous Conversation:
+{history}
 
-        Context:
+IPL Context:
+{context}
 
-        {context}
+Current Question:
+{state['question']}
 
-        Current Question:
+Rules:
 
-        {state['question']}
+1. Always use previous conversation to resolve references.
 
-        Answer using both conversation history
-        and context.
+2. If the user says:
+   - he
+   - him
+   - his
+   - they
+   - them
+   - that player
+   - that team
 
-        Give a concise answer.
-        """
+   identify the entity from previous conversation.
+
+3. Do NOT introduce new players unless user explicitly asks.
+
+4. If previous question compared two players,
+   follow-up questions must refer only to those players.
+
+Example:
+
+User: Compare Virat Kohli and Rohit Sharma
+
+User: Who has better average?
+
+Answer:
+Virat Kohli has better average.
+
+5. Answer only from provided IPL context.
+
+6. Keep answer under 5 lines.
+
+Final Answer:
+"""
     )
 
     return {
