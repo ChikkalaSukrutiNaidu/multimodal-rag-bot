@@ -11,7 +11,19 @@ def router_node(state):
 
     question = state["question"].lower()
 
-    # Company Queries
+    reasoning_keywords = [
+        "compare",
+        "difference",
+        "both",
+        "highest and",
+        "most runs and",
+        "most wickets and",
+        "top batsman and top bowler"
+    ]
+
+    if any(keyword in question for keyword in reasoning_keywords):
+        return {"route": "reasoning"}
+
     if any(
         word in question
         for word in [
@@ -23,7 +35,6 @@ def router_node(state):
     ):
         return {"route": "company"}
 
-    # Calculator Queries
     if any(
         word in question
         for word in [
@@ -40,7 +51,6 @@ def router_node(state):
     ):
         return {"route": "calculator"}
 
-    # Date Queries
     if any(
         word in question
         for word in [
@@ -53,7 +63,6 @@ def router_node(state):
     ):
         return {"route": "date"}
 
-    # Latest IPL / Dynamic Questions
     if any(
         word in question
         for word in [
@@ -72,11 +81,9 @@ def router_node(state):
     ):
         return {"route": "web"}
 
-    # IPL Stats Queries
     if is_ipl_stats_query(question):
         return {"route": "ipl_stats"}
 
-    # Dataset Queries
     if state["retriever"] is not None:
         return {"route": "rag"}
 
@@ -137,6 +144,8 @@ def rag_node(state):
         "source": "pdf_rag",
         "docs": docs
     }
+
+
 def ipl_stats_node(state):
 
     retriever = state["retriever"]
@@ -156,6 +165,29 @@ def ipl_stats_node(state):
     return {
         "answer": answer,
         "source": "ipl_stats",
+        "docs": docs
+    }
+
+
+def reasoning_node(state):
+
+    retriever = state["retriever"]
+
+    if retriever is None:
+        return {
+            "answer": "IPL dataset not loaded.",
+            "source": "reasoning",
+            "docs": []
+        }
+
+    answer, docs = ask_question(
+        state["question"],
+        retriever
+    )
+
+    return {
+        "answer": answer,
+        "source": "reasoning",
         "docs": docs
     }
 
@@ -186,9 +218,6 @@ def web_node(state):
         - Maximum 5 lines.
         - Do not copy website content.
         - Summarize important facts only.
-        - For points tables show top teams.
-        - For rankings show top entries.
-        - For winner questions give winner name directly.
         """
     )
 

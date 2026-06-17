@@ -10,7 +10,8 @@ from graph.nodes import (
     date_node,
     rag_node,
     ipl_stats_node,
-    web_node
+    web_node,
+    reasoning_node
 )
 
 builder = StateGraph(GraphState)
@@ -22,6 +23,7 @@ builder.add_node("date", date_node)
 builder.add_node("rag", rag_node)
 builder.add_node("ipl_stats", ipl_stats_node)
 builder.add_node("web", web_node)
+builder.add_node("reasoning", reasoning_node)
 
 builder.set_entry_point("router")
 
@@ -39,7 +41,8 @@ builder.add_conditional_edges(
         "date": "date",
         "rag": "rag",
         "ipl_stats": "ipl_stats",
-        "web": "web"
+        "web": "web",
+        "reasoning": "reasoning"
     }
 )
 
@@ -49,5 +52,6 @@ builder.add_edge("date", END)
 builder.add_edge("rag", END)
 builder.add_edge("ipl_stats", END)
 builder.add_edge("web", END)
+builder.add_edge("reasoning", END)
 
 graph = builder.compile()
