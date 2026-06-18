@@ -6,6 +6,7 @@ from services.web_search_tool import tavily_search
 from services.calculator_tool import calculator_tool
 from services.date_tool import date_tool
 from services.memory import get_history
+from services.relevance_checker import is_relevant
 
 def router_node(state):
 
@@ -143,6 +144,20 @@ def rag_node(state):
             "docs": []
         }
 
+    docs = retriever.invoke(
+        state["question"]
+    )
+
+    context = "\n\n".join(
+        [doc.page_content for doc in docs]
+    )
+
+    if not is_relevant(
+        state["question"],
+        context
+    ):
+        return web_node(state)
+
     answer, docs = ask_question(
         state["question"],
         retriever
@@ -165,6 +180,20 @@ def ipl_stats_node(state):
             "source": "ipl_stats",
             "docs": []
         }
+
+    docs = retriever.invoke(
+        state["question"]
+    )
+
+    context = "\n\n".join(
+        [doc.page_content for doc in docs]
+    )
+
+    if not is_relevant(
+        state["question"],
+        context
+    ):
+        return web_node(state)
 
     answer, docs = ask_question(
         state["question"],
@@ -197,6 +226,17 @@ def reasoning_node(state):
         [doc.page_content for doc in docs]
     )
 
+    # OUT OF CONTEXT CHECK
+    if not is_relevant(
+        state["question"],
+        context
+    ):
+        return {
+            "answer": "This question is outside the IPL dataset.",
+            "source": "fallback",
+            "docs": []
+        }
+
     history = state.get(
         "history",
         ""
@@ -215,40 +255,7 @@ IPL Context:
 Current Question:
 {state['question']}
 
-Rules:
-
-1. Always use previous conversation to resolve references.
-
-2. If the user says:
-   - he
-   - him
-   - his
-   - they
-   - them
-   - that player
-   - that team
-
-   identify the entity from previous conversation.
-
-3. Do NOT introduce new players unless user explicitly asks.
-
-4. If previous question compared two players,
-   follow-up questions must refer only to those players.
-
-Example:
-
-User: Compare Virat Kohli and Rohit Sharma
-
-User: Who has better average?
-
-Answer:
-Virat Kohli has better average.
-
-5. Answer only from provided IPL context.
-
-6. Keep answer under 5 lines.
-
-Final Answer:
+...
 """
     )
 
