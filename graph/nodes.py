@@ -1,3 +1,4 @@
+from graph import state
 from services.llm_service import llm
 from services.ipl_stats_tool import is_ipl_stats_query
 from services.company_tool import company_tool
@@ -28,11 +29,39 @@ def router_node(state):
     "they",
     "them",
     "that player",
-    "that team"
+    "that team",
+    "centuries",
+"matches",
+"strike rate",
+"average",
+"runs",
+"wickets"
 ]
 
     if any(keyword in question for keyword in reasoning_keywords):
         return {"route": "reasoning"}
+
+    temporal_keywords = [
+        "between",
+        "from",
+        "after",
+        "before",
+        "since",
+        "during",
+        "2018",
+        "2019",
+        "2020",
+        "2021",
+        "2022",
+        "2023",
+        "2024",
+        "2025",
+        "2026"
+    ]
+
+    if any(keyword in question for keyword in temporal_keywords):
+        return {"route": "temporal"}
+    
 
     if any(
         word in question
@@ -72,7 +101,24 @@ def router_node(state):
         ]
     ):
         return {"route": "date"}
-
+    if any(
+    word in question
+    for word in [
+        "ipl",
+        "rcb",
+        "csk",
+        "mi",
+        "mumbai indians",
+        "kkr",
+        "rr",
+        "gt",
+        "pbks",
+        "srh",
+        "dc",
+        "lsg"
+    ]
+):
+        return {"route": "ipl_stats"}
     if any(
         word in question
         for word in [
@@ -144,20 +190,6 @@ def rag_node(state):
             "docs": []
         }
 
-    docs = retriever.invoke(
-        state["question"]
-    )
-
-    context = "\n\n".join(
-        [doc.page_content for doc in docs]
-    )
-
-    if not is_relevant(
-        state["question"],
-        context
-    ):
-        return web_node(state)
-
     answer, docs = ask_question(
         state["question"],
         retriever
@@ -168,7 +200,6 @@ def rag_node(state):
         "source": "pdf_rag",
         "docs": docs
     }
-
 
 def ipl_stats_node(state):
 
@@ -181,18 +212,17 @@ def ipl_stats_node(state):
             "docs": []
         }
 
-    docs = retriever.invoke(
-        state["question"]
-    )
-
-    context = "\n\n".join(
-        [doc.page_content for doc in docs]
-    )
-
-    if not is_relevant(
+    results = retriever.vectorstore.similarity_search_with_score(
         state["question"],
-        context
-    ):
+        k=4
+    )
+
+    docs = [doc for doc, score in results]
+    scores = [score for doc, score in results]
+
+    print("IPL Stats Scores:", scores)
+
+    if not is_relevant(scores):
         return web_node(state)
 
     answer, docs = ask_question(
@@ -205,6 +235,10 @@ def ipl_stats_node(state):
         "source": "ipl_stats",
         "docs": docs
     }
+
+
+
+
 
 
 def reasoning_node(state):
@@ -226,17 +260,6 @@ def reasoning_node(state):
         [doc.page_content for doc in docs]
     )
 
-    # OUT OF CONTEXT CHECK
-    if not is_relevant(
-        state["question"],
-        context
-    ):
-        return {
-            "answer": "This question is outside the IPL dataset.",
-            "source": "fallback",
-            "docs": []
-        }
-
     history = state.get(
         "history",
         ""
@@ -255,13 +278,113 @@ IPL Context:
 Current Question:
 {state['question']}
 
-...
+Rules:
+
+1. Use Previous Conversation to resolve references.
+
+2. If user says:
+   - he
+   - him
+   - his
+   - they
+   - them
+   - that player
+   - that team
+
+   identify the entity ONLY from Previous Conversation.
+
+3. If the previous conversation contains a comparison between players,
+   and the current question is a follow-up,
+   answer ONLY about those compared players.
+
+4. Never introduce a new player from IPL Context.
+
+Example:
+
+User: Compare Virat Kohli and Rohit Sharma
+
+User: Who has better average?
+
+Correct:
+Virat Kohli has a better average (37.17) than Rohit Sharma (29.57).
+
+Wrong:
+KL Rahul has the highest average.
+
+User: How many centuries does he have?
+
+Correct:
+Virat Kohli has 7 centuries.
+
+5. Answer only from IPL Context.
+
+6. Maximum 3 lines.
+
+Final Answer:
 """
     )
 
     return {
         "answer": response.content,
         "source": "reasoning",
+        "docs": docs
+    }
+def temporal_node(state):
+
+    retriever = state["retriever"]
+
+    docs = retriever.invoke(state["question"])
+
+    context = "\n\n".join(
+        [doc.page_content for doc in docs]
+    )
+
+    history = state.get("history", "")
+
+    response = llm.invoke(
+        f"""
+You are an IPL temporal reasoning assistant.
+
+Previous Conversation:
+{history}
+
+IPL Context:
+{context}
+
+Current Question:
+{state['question']}
+
+Rules:
+
+1. Use Previous Conversation.
+
+2. Resolve references like:
+   - before that
+   - after that
+   - that year
+   - previous season
+   - next season
+
+3. Example:
+
+User: Who won IPL in 2023?
+Answer: CSK
+
+User: Who won before that?
+
+Answer: GT won IPL 2022.
+
+4. Answer only from IPL Context.
+
+5. Maximum 3 lines.
+
+Final Answer:
+"""
+    )
+
+    return {
+        "answer": response.content,
+        "source": "temporal",
         "docs": docs
     }
 

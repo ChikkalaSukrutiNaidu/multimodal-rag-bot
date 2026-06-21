@@ -5,4 +5,6 @@ def get_retriever(vectorstore):
         search_kwargs={"k": 8}
     )
 
+    retriever.vectorstore = vectorstore
+
     return retriever

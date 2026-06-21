@@ -11,7 +11,8 @@ from graph.nodes import (
     rag_node,
     ipl_stats_node,
     web_node,
-    reasoning_node
+    reasoning_node,
+    temporal_node
 )
 
 builder = StateGraph(GraphState)
@@ -24,6 +25,7 @@ builder.add_node("rag", rag_node)
 builder.add_node("ipl_stats", ipl_stats_node)
 builder.add_node("web", web_node)
 builder.add_node("reasoning", reasoning_node)
+builder.add_node("temporal", temporal_node)
 
 builder.set_entry_point("router")
 
@@ -42,16 +44,15 @@ builder.add_conditional_edges(
         "rag": "rag",
         "ipl_stats": "ipl_stats",
         "web": "web",
-        "reasoning": "reasoning"
+        "reasoning": "reasoning",
+        "temporal": "temporal"
     }
 )
 
-builder.add_edge("company", END)
-builder.add_edge("calculator", END)
-builder.add_edge("date", END)
 builder.add_edge("rag", END)
 builder.add_edge("ipl_stats", END)
 builder.add_edge("web", END)
 builder.add_edge("reasoning", END)
+builder.add_edge("temporal", END)
 
 graph = builder.compile()

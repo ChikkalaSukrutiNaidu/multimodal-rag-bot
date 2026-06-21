@@ -1,26 +1,10 @@
-from services.llm_service import llm
+def is_relevant(scores):
 
+    if not scores:
+        return False
 
-def is_relevant(question, context):
+    best_score = min(scores)
 
-    response = llm.invoke(
-        f"""
-Question:
-{question}
+    print("FAISS Scores:", scores)
 
-Context:
-{context}
-
-Can the question be answered from the context?
-
-Reply only:
-
-YES
-
-or
-
-NO
-"""
-    )
-
-    return "YES" in response.content.upper()
+    return best_score < 1.0
