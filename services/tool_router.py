@@ -1,44 +1,73 @@
-from services.company_tool import company_tool
-from services.web_search_tool import get_web_search_tool
-from services.rag_service import ask_question
+from services.skill_loader import load_skill
 
-search = get_web_search_tool()
+def detect_skill(question):
 
-def route_question(question, retriever):
+    q = question.lower()
 
-    print("Routing question:", question)
+    if any(
+        word in q
+        for word in [
+            "compare",
+            "better",
+            "average",
+            "strike rate",
+            "centuries",
+            "runs",
+            "wickets"
+        ]
+    ):
+        return load_skill(
+            "player_comparison"
+        )
 
-    # ======================
-    # 1. MYSQL TOOL CHECK
-    # ======================
-    if any(word in question.lower() for word in ["ceo", "package", "eligibility", "company"]):
-        result = company_tool(question)
+    if any(
+        word in q
+        for word in [
+            "between",
+            "before",
+            "after",
+            "since",
+            "during",
+            "2019",
+            "2020",
+            "2021",
+            "2022",
+            "2023",
+            "2024",
+            "2025",
+            "2026"
+        ]
+    ):
+        return load_skill(
+            "temporal_analysis"
+        )
 
-        if result:
-            return f"Company: {result['company_name']} | CEO: {result['ceo']} | Eligibility: {result['eligibility']} | Package: {result['package']}", "MYSQL"
+    if any(
+        word in q
+        for word in [
+            "venue",
+            "stadium",
+            "pitch"
+        ]
+    ):
+        return load_skill(
+            "venue_analysis"
+        )
 
-    # ======================
-    # 2. RAG CHECK
-    # ======================
-    if retriever is not None:
-        try:
-            answer, docs = ask_question(question, retriever)
+    if any(
+        word in q
+        for word in [
+            "he",
+            "him",
+            "his",
+            "they",
+            "them",
+            "that player",
+            "that team"
+        ]
+    ):
+        return load_skill(
+            "memory_reasoning"
+        )
 
-            if answer and "not contain" not in answer.lower():
-                return answer, "RAG"
-        except:
-            pass
-
-    # ======================
-    # 3. TAVILY WEB SEARCH
-    # ======================
-    try:
-        results = search(question)
-
-        if results:
-            top = results[0]
-            return top.get("content", "No content found"), "WEB"
-    except Exception as e:
-        print("Web error:", e)
-
-    return "No information found", "NONE"
+    return ""

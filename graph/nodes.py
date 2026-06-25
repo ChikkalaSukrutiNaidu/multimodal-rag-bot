@@ -8,6 +8,7 @@ from services.calculator_tool import calculator_tool
 from services.date_tool import date_tool
 from services.memory import get_history
 from services.relevance_checker import is_relevant
+from services.tool_router import detect_skill
 
 def router_node(state):
 
@@ -264,10 +265,16 @@ def reasoning_node(state):
         "history",
         ""
     )
+    skill = detect_skill(
+    state["question"]
+)
 
     response = llm.invoke(
         f"""
 You are an IPL analytics assistant.
+
+Skill Instructions:
+{skill}
 
 Previous Conversation:
 {history}
